@@ -4,28 +4,50 @@ const controls = window;
 const controls3d = window;
 
 // Input and canvas setup
-const videoElement = document.getElementsByClassName('input_video')[0];
 const canvasElement = document.getElementsByClassName('output_canvas')[0];
 const controlsElement = document.getElementsByClassName('control-panel')[0];
 const canvasCtx = canvasElement.getContext('2d');
-
 
 // Buttons
 const startRecordingButton = document.getElementById('startRecording');
 const stopRecordingButton = document.getElementById('stopRecording');
 const saveRecordingButton = document.getElementById('saveRecording');
 
+// Video
+const hiddenVideo = document.createElement('video');
+const options = { mimeType: 'video/mp4; codecs=avc1.42E01E,mp4a.40.2' };
+const constraints = { 
+    audio: false, 
+    video: { 
+        width: { ideal: 1920 }, 
+        height: { ideal: 1080 }, 
+        frameRate: { ideal: 30 } 
+    } 
+};
+
+
+const stream = await navigator.mediaDevices.getUserMedia(constraints);
+hiddenVideo.srcObject = stream;
+
+async function tryPlayVideo() {
+    try {
+        await hiddenVideo.play();
+    } catch (error) {
+        console.error('Failed to play video:', error);
+        setTimeout(() => tryPlayVideo(), 100);
+    }
+}
+
+tryPlayVideo();
+
 // MediaRecorder variables
-let mediaRecorder;
+const mediaRecorder = new MediaRecorder(stream, options);
 let recordedChunks = [];
 
 // Button functionality
 startRecordingButton.addEventListener('click', () => {
     startRecordingButton.style.display = 'none';
     stopRecordingButton.style.display = 'inline-block';
-
-    const stream = canvasElement.captureStream(30); // Capture canvas at 30 FPS
-    mediaRecorder = new MediaRecorder(stream);
 
     mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -36,7 +58,8 @@ startRecordingButton.addEventListener('click', () => {
     mediaRecorder.onstop = () => {
         saveRecordingButton.disabled = false; // Enable save button
     };
-
+    
+    recordedChunks = [];
     mediaRecorder.start();
 });
 
@@ -48,11 +71,20 @@ stopRecordingButton.addEventListener('click', () => {
 });
 
 saveRecordingButton.addEventListener('click', () => {
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    // Save to local
+    const blob = new Blob(recordedChunks, { type: 'video/mp4' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const date = new Date();
+    const formattedTime = new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        second: 'numeric',
+        hour12: false,
+    }).format(date);
+
     a.href = url;
-    a.download = 'recording.webm';
+    a.download = `recording_${formattedTime}.mp4`;
     a.click();
 
     // Reset recording state
@@ -65,40 +97,38 @@ const config = { locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/
 const hands = new mpHands.Hands(config);
 hands.onResults(onResults);
 
+async function startHandsProcessing() {
+    async function processFrame() {
+        if (!hiddenVideo.paused && !hiddenVideo.ended) {
+            // Create an ImageBitmap from the hiddenVideo element
+            await hands.send({ image: hiddenVideo });
+        }
+        requestAnimationFrame(processFrame); // Keep processing in a loop
+    }
+    processFrame(); // Start the loop
+}
+
+hiddenVideo.addEventListener('playing', () => {
+    startHandsProcessing();
+});
+
 // Control panel for settings
 new controls.ControlPanel(controlsElement, {
     selfieMode: true,
     maxNumHands: 2,
     modelComplexity: 1,
     minDetectionConfidence: 0.5,
-    minTrackingConfidence: 0.5
+    minTrackingConfidence: 0.5,
 })
     .add([
         new controls.StaticText({ title: 'MediaPipe Hands' }),
         new controls.FPS(),
         new controls.Toggle({ title: 'Selfie Mode', field: 'selfieMode' }),
-        new controls.SourcePicker({
-            onFrame: async (input, size) => {
-                // const aspect = size.height / size.width;
-                const aspect = 1080 / 1920;
-                let width, height;
-                if (window.innerWidth > window.innerHeight) {
-                    height = window.innerHeight;
-                    width = height / aspect;
-                } else {
-                    width = window.innerWidth;
-                    height = width * aspect;
-                }
-                canvasElement.width = width;
-                canvasElement.height = height;
-                await hands.send({ image: input });
-            },
-        }),
         new controls.Slider({
             title: 'Max Number of Hands',
             field: 'maxNumHands',
             range: [1, 4],
-            step: 1
+            step: 1,
         }),
         new controls.Slider({
             title: 'Model Complexity',
@@ -109,18 +139,18 @@ new controls.ControlPanel(controlsElement, {
             title: 'Min Detection Confidence',
             field: 'minDetectionConfidence',
             range: [0, 1],
-            step: 0.01
+            step: 0.01,
         }),
         new controls.Slider({
             title: 'Min Tracking Confidence',
             field: 'minTrackingConfidence',
             range: [0, 1],
-            step: 0.01
+            step: 0.01,
         }),
     ])
     .on((x) => {
         const options = x;
-        videoElement.classList.toggle('selfie', options.selfieMode);
+        hiddenVideo.classList.toggle('selfie', options.selfieMode);
         hands.setOptions(options);
     });
 
@@ -128,8 +158,9 @@ function onResults(results) {
     document.body.classList.add('loaded');
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
 
+    // Draw results for display canvas
+    canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
     if (results.multiHandLandmarks && results.multiHandedness) {
         for (let index = 0; index < results.multiHandLandmarks.length; index++) {
             const classification = results.multiHandedness[index];
