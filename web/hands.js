@@ -90,7 +90,7 @@ saveRecordingButton.addEventListener('click', () => {
         filename = 'recording';
     }
     a.href = url;
-    a.download = `${filename}_${formattedTime}.mp4`;
+    a.download = `${filename}.mp4`;
     a.click();
 
     // Reset recording state
