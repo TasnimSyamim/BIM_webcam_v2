@@ -49,13 +49,15 @@
     </div>
 
     <!-- Buttons for recording -->
-    <div class="columns">
-      <div class="column has-text-centered">
-        <button id="startRecording" class="button is-primary">Start Recording</button>
-        <button id="stopRecording" class="button is-danger" style="display: none;">Stop Recording</button>
-        <button id="saveRecording" class="button is-link" disabled>Save to Device</button>
-      </div>
+  <div class="columns">
+    <div class="column has-text-centered">
+      <input id="filenameInput" class="input" type="text" placeholder="Enter filename" style="width: 250px; display: inline-block; margin-bottom: 10px;" />
+      <br>
+      <button id="startRecording" class="button is-primary">Start Recording</button>
+      <button id="stopRecording" class="button is-danger" style="display: none;">Stop Recording</button>
+      <button id="saveRecording" class="button is-link" disabled>Save to Device</button>
     </div>
+  </div>
 
     <!-- legacy -->
     <div style="visibility: hidden;" class="control-panel"></div>

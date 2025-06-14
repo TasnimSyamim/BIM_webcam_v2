@@ -12,6 +12,7 @@ const canvasCtx = canvasElement.getContext('2d');
 const startRecordingButton = document.getElementById('startRecording');
 const stopRecordingButton = document.getElementById('stopRecording');
 const saveRecordingButton = document.getElementById('saveRecording');
+const filenameInput = document.getElementById('filenameInput'); // Add this line
 
 // Video
 const hiddenVideo = document.createElement('video');
@@ -83,8 +84,13 @@ saveRecordingButton.addEventListener('click', () => {
         hour12: false,
     }).format(date);
 
+    // Use input value or fallback to default
+    let filename = filenameInput.value.trim();
+    if (!filename) {
+        filename = 'recording';
+    }
     a.href = url;
-    a.download = `recording_${formattedTime}.mp4`;
+    a.download = `${filename}_${formattedTime}.mp4`;
     a.click();
 
     // Reset recording state
