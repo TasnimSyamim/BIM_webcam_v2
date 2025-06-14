@@ -76,13 +76,13 @@ saveRecordingButton.addEventListener('click', () => {
     const blob = new Blob(recordedChunks, { type: 'video/mp4' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const date = new Date();
-    const formattedTime = new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
-        hour12: false,
-    }).format(date);
+    // const date = new Date();
+    // const formattedTime = new Intl.DateTimeFormat('en-US', {
+    //     hour: 'numeric',
+    //     minute: 'numeric',
+    //     second: 'numeric',
+    //     hour12: false,
+    // }).format(date);
 
     // Use input value or fallback to default
     let filename = filenameInput.value.trim();
